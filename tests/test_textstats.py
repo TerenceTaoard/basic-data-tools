@@ -1,6 +1,6 @@
 import pytest
 
-from scripts.textstats import tokenize
+from scripts.textstats import filter_min_length, tokenize
 
 
 def test_tokenize_tokenizes_basic_text():
@@ -57,3 +57,44 @@ def test_tokenize_lowercases_when_requested():
     tokens = tokenize(text, lowercase=True)
 
     assert tokens == ["what", "what"]
+
+
+def test_filter_min_length_default_length_keeps_one_character_tokens():
+    tokens = ["what", "a", "day"]
+
+    filtered_tokens = filter_min_length(tokens)
+
+    assert filtered_tokens == ["what", "a", "day"]
+
+
+def test_filter_min_length_shorter_tokens_removed():
+    tokens = ["what", "a", "day"]
+
+    filtered_tokens = filter_min_length(tokens, 3)
+
+    assert filtered_tokens == ["what", "day"]
+
+
+def test_filter_min_length_tokens_at_threshold_retained():
+    tokens = ["it", "is"]
+
+    filtered_tokens = filter_min_length(tokens, 2)
+
+    assert filtered_tokens == ["it", "is"]
+
+
+def test_filter_min_length_all_tokens_may_be_removed():
+    tokens = ["what", "a", "day"]
+
+    filtered_tokens = filter_min_length(tokens, 5)
+
+    assert filtered_tokens == []
+
+
+def test_filter_min_length_nonpositive_min_length_raises():
+    tokens = ["hi"]
+
+    with pytest.raises(
+        ValueError, match="min_length must be > 0, but received min_length of 0"
+    ):
+        filter_min_length(tokens, 0)
