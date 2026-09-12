@@ -1,6 +1,12 @@
 import pytest
 
-from scripts.textstats import count_words, filter_min_length, sort_top_words, tokenize
+from scripts.textstats import (
+    compute_text_stats,
+    count_words,
+    filter_min_length,
+    sort_top_words,
+    tokenize,
+)
 
 
 def test_tokenize_tokenizes_basic_text():
@@ -195,3 +201,131 @@ def test_sort_top_words_nonpositive_limit_raises():
 
     with pytest.raises(ValueError, match="limit must be > 0, but received limit of 0"):
         sort_top_words(word_counts, 0)
+
+
+def test_compute_text_stats_empty_string_gives_line_count_zero():
+    text = ""
+
+    text_stats = compute_text_stats(text)
+
+    assert text_stats["line_count"] == 0
+
+
+def test_compute_text_stats_counts_one_line():
+    text = "hello"
+
+    text_stats = compute_text_stats(text)
+
+    assert text_stats["line_count"] == 1
+
+
+def test_compute_text_stats_counts_one_line_with_newline():
+    text = "hello\n"
+
+    text_stats = compute_text_stats(text)
+
+    assert text_stats["line_count"] == 1
+
+
+def test_compute_text_stats_counts_two_lines():
+    text = "hello\nworld"
+
+    text_stats = compute_text_stats(text)
+
+    assert text_stats["line_count"] == 2
+
+
+def test_compute_text_stats_counts_blank_lines():
+    text = "hello\n\nworld"
+
+    text_stats = compute_text_stats(text)
+
+    assert text_stats["line_count"] == 3
+
+
+def test_compute_text_stats_counts_whitespace_only_lines_as_empty():
+    text = "hello\n\nword"
+
+    text_stats = compute_text_stats(text)
+
+    assert text_stats["nonempty_line_count"] == 2
+
+
+def test_compute_text_stats_punctuation_only_lines_as_nonempty():
+    text = ".,"
+
+    text_stats = compute_text_stats(text)
+
+    assert text_stats["nonempty_line_count"] == 1
+
+
+def test_compute_text_stats_counts_characters():
+    text = "hello, world\n"
+
+    text_stats = compute_text_stats(text)
+
+    assert text_stats["character_count"] == 13
+
+
+def test_compute_text_stats_counts_zero_characters_on_empty_text():
+    text = ""
+
+    text_stats = compute_text_stats(text)
+
+    assert text_stats["character_count"] == 0
+
+
+def test_compute_text_stats_case_differences_remain_separate_with_lowercasing():
+    text = "hello Hello"
+
+    text_stats = compute_text_stats(text, lowercase=True)
+
+    assert text_stats["unique_word_count"] == 1
+
+
+def test_compute_text_stats_case_differences_merge_without_lowercasing():
+    text = "hello Hello"
+
+    text_stats = compute_text_stats(text, lowercase=False)
+
+    assert text_stats["unique_word_count"] == 2
+
+
+def test_compute_text_stats_lowercasing_merges_counts():
+    text = "hello Hello"
+
+    text_stats = compute_text_stats(text, lowercase=True)
+
+    assert text_stats["top_words"] == [{"word": "hello", "count": 2}]
+
+
+def test_compute_text_stats_word_counts_excludes_lengths_below_min_length():
+    text = "This is an example\n\nAnd this example continues"
+
+    text_stats = compute_text_stats(text, min_length=4)
+
+    assert text_stats["word_count"] == 5
+
+
+def test_compute_text_stats_computes_full_summary_correctly():
+    text = "This is an example\n\nAnd this example continues"
+
+    text_stats = compute_text_stats(
+        text, lowercase=True, min_length=4, top_words_limit=3
+    )
+
+    assert text_stats == {
+        "line_count": 3,
+        "nonempty_line_count": 2,
+        "character_count": 46,
+        "word_count": 5,
+        "unique_word_count": 3,
+        "lowercase": True,
+        "min_length": 4,
+        "top_words_limit": 3,
+        "top_words": [
+            {"word": "example", "count": 2},
+            {"word": "this", "count": 2},
+            {"word": "continues", "count": 1},
+        ],
+    }
