@@ -196,11 +196,13 @@ def test_sort_top_words_empty_word_counts_returns_empty():
     assert sorted_word_counts == []
 
 
-def test_sort_top_words_nonpositive_limit_raises():
+def test_sort_top_words_negative_limit_raises():
     word_counts = [{"word": "one", "count": 1}]
 
-    with pytest.raises(ValueError, match="limit must be > 0, but received limit of 0"):
-        sort_top_words(word_counts, 0)
+    with pytest.raises(
+        ValueError, match="limit must be >= 0, but received limit of -1"
+    ):
+        sort_top_words(word_counts, -1)
 
 
 def test_compute_text_stats_empty_string_gives_line_count_zero():
@@ -294,7 +296,7 @@ def test_compute_text_stats_case_differences_merge_without_lowercasing():
 def test_compute_text_stats_lowercasing_merges_counts():
     text = "hello Hello"
 
-    text_stats = compute_text_stats(text, lowercase=True)
+    text_stats = compute_text_stats(text, lowercase=True, top_words_limit=10)
 
     assert text_stats["top_words"] == [{"word": "hello", "count": 2}]
 

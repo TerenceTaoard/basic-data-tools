@@ -70,28 +70,26 @@ def count_words(tokens: list[str]) -> list[dict]:
     return word_counts
 
 
-def sort_top_words(counts: list[dict], limit: int | None = None) -> list[dict]:
+def sort_top_words(counts: list[dict], limit: int = 10) -> list[dict]:
     """
     Sort word counts in the form [{"word": <word>, "count": <count>, ...}] by count descending,
     then by word in ascending lexicographic order, keeping only the top limit words.
 
     Args:
         counts: Word counts in the form [{"word": <word>, "count": <count>, ...}].
-        limit: The number of top word counts to keep. If None, keep all words.
+        limit: The number of top word counts to keep.
 
     Preconditions:
-        - limit > 0
+        - limit >= 0
 
     Returns:
         Top word counts in the form [{"word": <word>, "count": <count>, ...}].
     """
-    if limit is not None and limit < 1:
-        raise ValueError(f"limit must be > 0, but received limit of {limit}")
+    if limit < 1:
+        raise ValueError(f"limit must be >= 0, but received limit of {limit}")
 
     sorted_counts = sorted(counts, key=lambda x: (-x["count"], x["word"]))
-
-    if limit is not None:
-        sorted_counts = sorted_counts[:limit]
+    sorted_counts = sorted_counts[:limit]
 
     return sorted_counts
 
@@ -109,11 +107,11 @@ def compute_text_stats(
         text: The text to summarize.
         lowercase: If True, all letters are first converted to lowercase before tokenization.
         min_length: The minimum length of token to keep.
-        top_words_limit: The number of top word counts to keep. If None, keep all words.
+        top_words_limit: The number of top word counts to keep. If None, top words list is empty.
 
     Preconditions:
         - min_length > 0
-        - top_words_limit > 0
+        - top_words_limit >= 0 (if provided)
 
     Returns:
         A dictionary summarizing line and word statistics for text.
@@ -127,7 +125,7 @@ def compute_text_stats(
             "unique_word_count" (int): The number of unique words in text of length at least min_length.
             "lowercase" (bool): True if lowercase option was requested.
             "min_length" (int): The minimum length of word that was counted for word statistics.
-            "top_words_limit" (int): The max number of words to return in top_words.
+            "top_words_limit" (int | None): The max number of words to return in top_words.
             "top_words" (list[dict]): A list of the most frequent words in text in the form
                 [{"word": <word>, "count": <count>, ...}], sorted by count descending, then in
                 ascending lexicographic order.
@@ -144,8 +142,12 @@ def compute_text_stats(
 
     word_count = len(filtered_tokens)
     word_counts = count_words(filtered_tokens)
-    top_words = sort_top_words(word_counts, limit=top_words_limit)
-    unique_word_count = len(top_words)
+    unique_word_count = len(word_counts)
+
+    if top_words_limit is not None:
+        top_words = sort_top_words(word_counts, limit=top_words_limit)
+    else:
+        top_words = []
 
     text_stats = {
         "line_count": line_count,
