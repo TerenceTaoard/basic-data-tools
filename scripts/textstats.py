@@ -68,3 +68,29 @@ def count_words(tokens: list[str]) -> list[dict]:
     ]
 
     return word_counts
+
+
+def sort_top_words(counts: list[dict], limit: int | None = None) -> list[dict]:
+    """
+    Sort word counts in the form [{"word": <word>, "count": <count>, ...}] by count descending,
+    then by word in ascending lexicographic order, keeping only the top limit words.
+
+    Args:
+        counts: Word counts in the form [{"word": <word>, "count": <count>, ...}].
+        limit: The number of top word counts to keep. If None, keep all words.
+
+    Preconditions:
+        - limit > 0
+
+    Returns:
+        Top word counts in the form [{"word": <word>, "count": <count>, ...}].
+    """
+    if limit is not None and limit < 1:
+        raise ValueError(f"limit must be > 0, but received limit of {limit}")
+
+    sorted_counts = sorted(counts, key=lambda x: (-x["count"], x["word"]))
+
+    if limit is not None:
+        sorted_counts = sorted_counts[:limit]
+
+    return sorted_counts

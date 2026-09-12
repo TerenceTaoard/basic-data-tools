@@ -1,6 +1,6 @@
 import pytest
 
-from scripts.textstats import count_words, filter_min_length, tokenize
+from scripts.textstats import count_words, filter_min_length, sort_top_words, tokenize
 
 
 def test_tokenize_tokenizes_basic_text():
@@ -119,3 +119,79 @@ def test_count_words_counts_repeated_words():
         {"word": "three", "count": 1},
         {"word": "four", "count": 1},
     ]
+
+
+def test_sort_top_words_sorts_by_count_descending():
+    word_counts = [
+        {"word": "one", "count": 2},
+        {"word": "two", "count": 2},
+        {"word": "three", "count": 1},
+        {"word": "four", "count": 3},
+    ]
+
+    sorted_word_counts = sort_top_words(word_counts)
+
+    assert sorted_word_counts == [
+        {"word": "four", "count": 3},
+        {"word": "one", "count": 2},
+        {"word": "two", "count": 2},
+        {"word": "three", "count": 1},
+    ]
+
+
+def test_sort_top_words_sorts_by_lexicographic_ascending_on_ties():
+    word_counts = [
+        {"word": "ad", "count": 2},
+        {"word": "ac", "count": 2},
+        {"word": "ab", "count": 2},
+    ]
+
+    sorted_word_counts = sort_top_words(word_counts)
+
+    assert sorted_word_counts == [
+        {"word": "ab", "count": 2},
+        {"word": "ac", "count": 2},
+        {"word": "ad", "count": 2},
+    ]
+
+
+def test_sort_top_words_applies_limit_after_sorting():
+    word_counts = [
+        {"word": "one", "count": 2},
+        {"word": "two", "count": 2},
+        {"word": "three", "count": 1},
+        {"word": "four", "count": 3},
+    ]
+
+    sorted_word_counts = sort_top_words(word_counts, 2)
+
+    assert sorted_word_counts == [
+        {"word": "four", "count": 3},
+        {"word": "one", "count": 2},
+    ]
+
+
+def test_sort_top_words_requesting_more_words_than_exists_keeps_all_words():
+    word_counts = [{"word": "one", "count": 1}, {"word": "two", "count": 2}]
+
+    sorted_word_counts = sort_top_words(word_counts, 3)
+
+    assert sorted_word_counts == [
+        {"word": "two", "count": 2},
+        {"word": "one", "count": 1},
+    ]
+
+
+def test_sort_top_words_empty_word_counts_returns_empty():
+    word_counts = []
+
+    sorted_word_counts = sort_top_words(word_counts)
+
+    assert sorted_word_counts == []
+
+
+def test_sort_top_words_nonpositive_limit_raises():
+    word_counts = [{"word": "one", "count": 1}]
+
+    with pytest.raises(ValueError, match="limit must be > 0, but received limit of 0"):
+        sort_top_words(word_counts, 0)
