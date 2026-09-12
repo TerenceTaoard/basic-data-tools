@@ -45,3 +45,26 @@ def filter_min_length(tokens: list[str], min_length: int = 1) -> list[str]:
     filtered_tokens = [token for token in tokens if len(token) >= min_length]
 
     return filtered_tokens
+
+
+def count_words(tokens: list[str]) -> list[dict]:
+    """
+    Produce a histogram of unique token counts.
+
+    Args:
+        tokens: The list of tokens to count.
+
+    Returns:
+        A list of dictionaries of the form
+        [{"word": <word>, "count": <count>, ...}]
+    """
+    count_by_word = {}
+
+    for token in tokens:
+        count_by_word[token] = count_by_word.get(token, 0) + 1
+
+    word_counts = [
+        {"word": word, "count": count} for (word, count) in count_by_word.items()
+    ]
+
+    return word_counts

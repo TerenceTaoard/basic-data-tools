@@ -1,6 +1,6 @@
 import pytest
 
-from scripts.textstats import filter_min_length, tokenize
+from scripts.textstats import count_words, filter_min_length, tokenize
 
 
 def test_tokenize_tokenizes_basic_text():
@@ -98,3 +98,24 @@ def test_filter_min_length_nonpositive_min_length_raises():
         ValueError, match="min_length must be > 0, but received min_length of 0"
     ):
         filter_min_length(tokens, 0)
+
+
+def test_count_words_no_tokens_returns_empty_list():
+    tokens = []
+
+    word_counts = count_words(tokens)
+
+    assert word_counts == []
+
+
+def test_count_words_counts_repeated_words():
+    tokens = ["one", "two", "one", "two", "three", "four"]
+
+    word_counts = count_words(tokens)
+
+    assert word_counts == [
+        {"word": "one", "count": 2},
+        {"word": "two", "count": 2},
+        {"word": "three", "count": 1},
+        {"word": "four", "count": 1},
+    ]
