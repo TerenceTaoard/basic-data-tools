@@ -1,5 +1,6 @@
 import json
 import re
+from pathlib import Path
 
 
 def tokenize(text: str, lowercase: bool = False) -> list[str]:
@@ -211,3 +212,18 @@ def format_text_stats(stats: dict, format: str = "text") -> str:
         return json.dumps(stats, indent=2)
     else:
         raise ValueError(f"format must be 'text' or 'json', but received {format!r}")
+
+
+def read_text_file(path: Path) -> str:
+    """
+    Read text from file, interpreted as UTF-8.
+
+    Args:
+        path: Path to file to read.
+
+    Returns:
+        The text in the file pointed to by 'path', where file text is interpreted as UTF-8.
+    """
+    text = path.read_text(encoding="utf-8")
+
+    return text

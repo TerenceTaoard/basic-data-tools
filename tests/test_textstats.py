@@ -1,12 +1,14 @@
 import json
-
 import pytest
+
+from pathlib import Path
 
 from scripts.textstats import (
     compute_text_stats,
     count_words,
     filter_min_length,
     format_text_stats,
+    read_text_file,
     sort_top_words,
     tokenize,
 )
@@ -509,3 +511,12 @@ def test_format_text_stats_invalid_format_raises():
         ValueError, match="format must be 'text' or 'json', but received 'csv'"
     ):
         format_text_stats(text_stats, format="csv")
+
+
+def test_read_text_file_reads_text(tmp_path):
+    input_path = tmp_path / "input.txt"
+    input_path.write_text("hello\n", encoding="utf-8")
+
+    text = read_text_file(input_path)
+
+    assert text == "hello\n"
