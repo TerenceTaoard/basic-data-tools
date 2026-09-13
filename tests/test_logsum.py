@@ -1,6 +1,6 @@
 import pytest
 
-from scripts.logsum import filter_records, parse_log_file, parse_log_line
+from scripts.logsum import filter_records, group_counts, parse_log_file, parse_log_line
 
 
 def test_parse_log_line_parses_normal_line():
@@ -246,3 +246,118 @@ def test_filter_records_missing_level_field_raises():
         ValueError, match=f"record contains no 'level' field: {records[1]!r}"
     ):
         filter_records(records)
+
+
+def test_group_counts_counts_repeated_values():
+    records = [
+        {
+            "timestamp": "2026-07-04T12:10:15Z",
+            "level": "INFO",
+            "fields": {
+                "user": "42",
+            },
+        },
+        {
+            "timestamp": "2026-07-04T12:10:16Z",
+            "level": "ERROR",
+            "fields": {
+                "user": "42",
+            },
+        },
+    ]
+
+    grouped_records = group_counts(records, field="user")
+
+    assert grouped_records["groups"] == [{"value": "42", "count": 2}]
+
+
+def test_group_counts_record_missing_group_field_excluded_and_counted_separately():
+    records = [
+        {
+            "timestamp": "2026-07-04T12:10:15Z",
+            "level": "INFO",
+            "fields": {
+                "user": "42",
+            },
+        },
+        {
+            "timestamp": "2026-07-04T12:10:16Z",
+            "level": "ERROR",
+            "fields": {
+                "name": "fred",
+            },
+        },
+    ]
+
+    grouped_records = group_counts(records, field="user")
+
+    assert grouped_records["missing_group_field"] == 1
+    assert grouped_records["groups"] == [
+        {"value": "42", "count": 1},
+    ]
+
+
+def test_group_counts_absent_group_field_produces_zero_groups():
+    records = [
+        {
+            "timestamp": "2026-07-04T12:10:15Z",
+            "level": "INFO",
+            "fields": {
+                "user": "42",
+            },
+        },
+        {
+            "timestamp": "2026-07-04T12:10:16Z",
+            "fields": {
+                "user": "19",
+            },
+        },
+    ]
+
+    grouped_records = group_counts(records, field="name")
+
+    assert grouped_records["groups"] == []
+
+
+def test_group_counts_empty_field_values_can_form_a_group():
+    records = [
+        {
+            "timestamp": "2026-07-04T12:10:15Z",
+            "level": "INFO",
+            "fields": {
+                "user": "",
+            },
+        },
+        {
+            "timestamp": "2026-07-04T12:10:16Z",
+            "level": "ERROR",
+            "fields": {
+                "user": "",
+            },
+        },
+    ]
+
+    grouped_records = group_counts(records, field="user")
+
+    assert grouped_records["groups"] == [{"value": "", "count": 2}]
+
+
+def test_group_counts_record_lacking_fields_key_raises():
+    records = [
+        {
+            "timestamp": "2026-07-04T12:10:15Z",
+            "level": "INFO",
+            "fields": {
+                "user": "",
+            },
+        },
+        {
+            "timestamp": "2026-07-04T12:10:16Z",
+            "level": "ERROR",
+        },
+    ]
+
+    with pytest.raises(
+        ValueError, match=f"record lacks a fields entry: {records[1]!r}"
+    ):
+        group_counts(records, field="user")

@@ -104,3 +104,44 @@ def filter_records(records: list[dict], level: str | None = None) -> list[dict]:
             filtered_records.append(record)
 
     return filtered_records
+
+
+def group_counts(records: list[dict], field: str) -> dict:
+    """
+    Returns a dictionary with records grouped by field value of form:
+    {
+        "missing_group_field": <number of fields lacking group key>
+        "groups": [
+            {"value": <value>, "count", <count>},
+            ...
+        ]
+    }
+
+    Args:
+        records: A list of records with 'fields' key of form
+            "fields": {
+                    <key>: <value>
+                    <key>: <value>
+                    ...
+                }
+        field: The field key on which to group by.
+    """
+    missing_group_field = 0
+    count_by_value = {}
+
+    for record in records:
+        if "fields" not in record:
+            raise ValueError(f"record lacks a fields entry: {record!r}")
+        if field not in record["fields"]:
+            missing_group_field += 1
+            continue
+        value = record["fields"][field]
+        count_by_value[value] = count_by_value.get(value, 0) + 1
+
+    groups = [
+        {"value": value, "count": count} for (value, count) in count_by_value.items()
+    ]
+
+    grouped_records = {"missing_group_field": missing_group_field, "groups": groups}
+
+    return grouped_records
