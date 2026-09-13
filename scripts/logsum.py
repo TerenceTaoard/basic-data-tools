@@ -1,7 +1,8 @@
 def parse_log_line(line: str) -> dict:
     """
     Returns a parsed dictionary record of line of the form:
-    {"timestamp": <timestamp>,
+    {
+        "timestamp": <timestamp>,
         "level": <level>,
         "fields": {
             <key>: <value>
@@ -46,3 +47,29 @@ def parse_log_line(line: str) -> dict:
     level = tokens[1]
 
     return {"timestamp": timestamp, "level": level, "fields": fields}
+
+
+def parse_log_file(lines: list[str]) -> dict:
+    """
+    Returns a dictionary of total line count, successfully parsed record count, malformed record
+    count, and a list of parsed records.
+
+    Args:
+        lines: A list of log file lines.
+    """
+    parsed_result = {}
+
+    parsed_result["total_line_count"] = len(lines)
+    parsed_result["parsed_record_count"] = 0
+    parsed_result["malformed_line_count"] = 0
+    parsed_result["parsed_records"] = []
+
+    for line in lines:
+        try:
+            parsed_line = parse_log_line(line)
+            parsed_result["parsed_record_count"] += 1
+            parsed_result["parsed_records"].append(parsed_line)
+        except ValueError:
+            parsed_result["malformed_line_count"] += 1
+
+    return parsed_result
