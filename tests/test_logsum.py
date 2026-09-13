@@ -1,6 +1,6 @@
 import pytest
 
-from scripts.logsum import parse_log_file, parse_log_line
+from scripts.logsum import filter_records, parse_log_file, parse_log_line
 
 
 def test_parse_log_line_parses_normal_line():
@@ -154,3 +154,95 @@ def test_parse_log_file_empty_input_gives_all_zero_counts():
     assert parsed_lines["total_line_count"] == 0
     assert parsed_lines["parsed_record_count"] == 0
     assert parsed_lines["malformed_line_count"] == 0
+
+
+def test_filter_records_no_level_filter_returns_every_record():
+    records = [
+        {
+            "timestamp": "2026-07-04T12:10:15Z",
+            "level": "INFO",
+            "fields": {
+                "user": "42",
+            },
+        },
+        {
+            "timestamp": "2026-07-04T12:10:16Z",
+            "level": "ERROR",
+            "fields": {
+                "user": "19",
+            },
+        },
+    ]
+
+    filtered_records = filter_records(records)
+
+    assert filtered_records == records
+
+
+def test_filter_records_filters_for_level():
+    records = [
+        {
+            "timestamp": "2026-07-04T12:10:15Z",
+            "level": "INFO",
+            "fields": {
+                "user": "42",
+            },
+        },
+        {
+            "timestamp": "2026-07-04T12:10:16Z",
+            "level": "ERROR",
+            "fields": {
+                "user": "19",
+            },
+        },
+    ]
+
+    filtered_records = filter_records(records, level="ERROR")
+
+    assert filtered_records == [records[1]]
+
+
+def test_filter_records_filter_with_zero_matches_returns_empty():
+    records = [
+        {
+            "timestamp": "2026-07-04T12:10:15Z",
+            "level": "INFO",
+            "fields": {
+                "user": "42",
+            },
+        },
+        {
+            "timestamp": "2026-07-04T12:10:16Z",
+            "level": "ERROR",
+            "fields": {
+                "user": "19",
+            },
+        },
+    ]
+
+    filtered_records = filter_records(records, level="WARNING")
+
+    assert filtered_records == []
+
+
+def test_filter_records_missing_level_field_raises():
+    records = [
+        {
+            "timestamp": "2026-07-04T12:10:15Z",
+            "level": "INFO",
+            "fields": {
+                "user": "42",
+            },
+        },
+        {
+            "timestamp": "2026-07-04T12:10:16Z",
+            "fields": {
+                "user": "19",
+            },
+        },
+    ]
+
+    with pytest.raises(
+        ValueError, match=f"record contains no 'level' field: {records[1]!r}"
+    ):
+        filter_records(records)

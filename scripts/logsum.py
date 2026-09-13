@@ -73,3 +73,34 @@ def parse_log_file(lines: list[str]) -> dict:
             parsed_result["malformed_line_count"] += 1
 
     return parsed_result
+
+
+def filter_records(records: list[dict], level: str | None = None) -> list[dict]:
+    """
+    Returns a list of records filtered by level.
+
+    Args:
+        records: A list of records of the form
+            {
+                "timestamp": <timestamp>,
+                "level": <level>,
+                "fields": {
+                    <key>: <value>
+                    <key>: <value>
+                    ...
+                }
+            }
+        level: Keep only records with this level. If None, keep all records.
+
+    Preconditions:
+        - Every record must have a 'level' field.
+    """
+    filtered_records = []
+
+    for record in records:
+        if "level" not in record:
+            raise ValueError(f"record contains no 'level' field: {record!r}")
+        if level is None or record["level"] == level:
+            filtered_records.append(record)
+
+    return filtered_records
