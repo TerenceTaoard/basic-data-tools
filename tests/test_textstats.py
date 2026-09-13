@@ -1,9 +1,12 @@
+import json
+
 import pytest
 
 from scripts.textstats import (
     compute_text_stats,
     count_words,
     filter_min_length,
+    format_text_stats,
     sort_top_words,
     tokenize,
 )
@@ -331,3 +334,178 @@ def test_compute_text_stats_computes_full_summary_correctly():
             {"word": "continues", "count": 1},
         ],
     }
+
+
+def test_format_text_stats_formats_text_correctly():
+    text_stats = {
+        "line_count": 4,
+        "nonempty_line_count": 3,
+        "character_count": 74,
+        "word_count": 12,
+        "unique_word_count": 9,
+        "lowercase": True,
+        "min_length": 1,
+        "top_words_limit": None,
+        "top_words": [],
+    }
+
+    formatted_text_stats = format_text_stats(text_stats, format="text")
+
+    assert formatted_text_stats == (
+        "Text statistics\n---------------\nLines: 4\nNonempty lines: 3\n"
+        "Characters: 74\nWords: 12\nUnique words: 9\n"
+    )
+
+
+def test_format_text_stats_formats_top_words():
+    text_stats = {
+        "line_count": 4,
+        "nonempty_line_count": 3,
+        "character_count": 74,
+        "word_count": 12,
+        "unique_word_count": 9,
+        "lowercase": True,
+        "min_length": 1,
+        "top_words_limit": 3,
+        "top_words": [
+            {"word": "python", "count": 3},
+            {"word": "data", "count": 2},
+            {"word": "file", "count": 2},
+        ],
+    }
+
+    formatted_text_stats = format_text_stats(text_stats, format="text")
+
+    assert formatted_text_stats == (
+        "Text statistics\n---------------\nLines: 4\nNonempty lines: 3\n"
+        "Characters: 74\nWords: 12\nUnique words: 9\n\nTop words:\n3  python\n2  data\n2  file\n"
+    )
+
+
+def test_format_text_stats_shows_none_when_top_words_requested_but_zero_words_remain():
+    text_stats = {
+        "line_count": 4,
+        "nonempty_line_count": 3,
+        "character_count": 74,
+        "word_count": 12,
+        "unique_word_count": 9,
+        "lowercase": True,
+        "min_length": 7,
+        "top_words_limit": 3,
+        "top_words": [],
+    }
+
+    formatted_text_stats = format_text_stats(text_stats, format="text")
+
+    assert formatted_text_stats == (
+        "Text statistics\n---------------\nLines: 4\nNonempty lines: 3\n"
+        "Characters: 74\nWords: 12\nUnique words: 9\n\nTop words:\n(none)\n"
+    )
+
+
+def test_format_text_stats_json_formats_correctly():
+    text_stats = {
+        "line_count": 4,
+        "nonempty_line_count": 3,
+        "character_count": 74,
+        "word_count": 12,
+        "unique_word_count": 9,
+        "lowercase": True,
+        "min_length": 1,
+        "top_words_limit": 3,
+        "top_words": [
+            {"word": "python", "count": 3},
+            {"word": "data", "count": 2},
+            {"word": "file", "count": 2},
+        ],
+    }
+
+    formatted_text_stats = format_text_stats(text_stats, format="json")
+    text_stats_from_json = json.loads(formatted_text_stats)
+
+    assert text_stats_from_json["line_count"] == 4
+    assert text_stats_from_json["nonempty_line_count"] == 3
+    assert text_stats_from_json["character_count"] == 74
+    assert text_stats_from_json["word_count"] == 12
+    assert text_stats_from_json["unique_word_count"] == 9
+    assert text_stats_from_json["lowercase"] == True
+    assert text_stats_from_json["min_length"] == 1
+    assert text_stats_from_json["top_words_limit"] == 3
+    assert text_stats_from_json["top_words"] == [
+        {"word": "python", "count": 3},
+        {"word": "data", "count": 2},
+        {"word": "file", "count": 2},
+    ]
+
+
+def test_format_text_stats_json_types_are_correct():
+    text_stats = {
+        "line_count": 4,
+        "nonempty_line_count": 3,
+        "character_count": 74,
+        "word_count": 12,
+        "unique_word_count": 9,
+        "lowercase": True,
+        "min_length": 1,
+        "top_words_limit": 3,
+        "top_words": [
+            {"word": "python", "count": 3},
+            {"word": "data", "count": 2},
+            {"word": "file", "count": 2},
+        ],
+    }
+
+    formatted_text_stats = format_text_stats(text_stats, format="json")
+    text_stats_from_json = json.loads(formatted_text_stats)
+
+    assert type(text_stats_from_json["line_count"]) == int
+    assert type(text_stats_from_json["nonempty_line_count"]) == int
+    assert type(text_stats_from_json["character_count"]) == int
+    assert type(text_stats_from_json["word_count"]) == int
+    assert type(text_stats_from_json["unique_word_count"]) == int
+    assert type(text_stats_from_json["lowercase"]) == bool
+    assert type(text_stats_from_json["min_length"]) == int
+    assert type(text_stats_from_json["top_words_limit"]) == int
+    assert type(text_stats_from_json["top_words"]) == list
+    assert type(text_stats_from_json["top_words"][0]) == dict
+    assert type(text_stats_from_json["top_words"][1]) == dict
+    assert type(text_stats_from_json["top_words"][2]) == dict
+
+
+def test_format_text_stats_json_with_top_words_limit_none_gives_null_limit_and_empty_list():
+    text_stats = {
+        "line_count": 4,
+        "nonempty_line_count": 3,
+        "character_count": 74,
+        "word_count": 12,
+        "unique_word_count": 9,
+        "lowercase": True,
+        "min_length": 1,
+        "top_words_limit": None,
+        "top_words": [],
+    }
+
+    formatted_text_stats = format_text_stats(text_stats, format="json")
+    text_stats_from_json = json.loads(formatted_text_stats)
+
+    assert text_stats_from_json["top_words_limit"] is None
+    assert text_stats_from_json["top_words"] == []
+
+
+def test_format_text_stats_invalid_format_raises():
+    text_stats = {
+        "line_count": 4,
+        "nonempty_line_count": 3,
+        "character_count": 74,
+        "word_count": 12,
+        "unique_word_count": 9,
+        "lowercase": True,
+        "min_length": 1,
+        "top_words_limit": None,
+        "top_words": [],
+    }
+
+    with pytest.raises(
+        ValueError, match="format must be 'text' or 'json', but received 'csv'"
+    ):
+        format_text_stats(text_stats, format="csv")

@@ -1,3 +1,4 @@
+import json
 import re
 
 
@@ -125,7 +126,8 @@ def compute_text_stats(
             "unique_word_count" (int): The number of unique words in text of length at least min_length.
             "lowercase" (bool): True if lowercase option was requested.
             "min_length" (int): The minimum length of word that was counted for word statistics.
-            "top_words_limit" (int | None): The max number of words to return in top_words.
+            "top_words_limit" (int | None): The max number of words to return in top_words. If
+                None, top_words is empty.
             "top_words" (list[dict]): A list of the most frequent words in text in the form
                 [{"word": <word>, "count": <count>, ...}], sorted by count descending, then in
                 ascending lexicographic order.
@@ -162,3 +164,50 @@ def compute_text_stats(
     }
 
     return text_stats
+
+
+def format_text_stats(stats: dict, format: str = "text") -> str:
+    """
+    Format text stats into a displayable form.
+
+    Args:
+        stats: A text stats dictionary.
+        format: The output format - 'text' or 'json'.
+
+    Preconditions:
+        - 'stats' must contain line_count, nonempty_line_count, character_count, word_count,
+          unique_word_count, lowercase, min_length, top_words_limit, and top_words fields.
+        - 'format' must be either 'text' or 'json'.
+
+    Returns:
+        A formatted representation of the text stats.
+    """
+
+    if format == "text":
+        formatted_text = (
+            f"Text statistics\n---------------\n"
+            f"Lines: {stats['line_count']}\n"
+            f"Nonempty lines: {stats['nonempty_line_count']}\n"
+            f"Characters: {stats['character_count']}\n"
+            f"Words: {stats['word_count']}\n"
+            f"Unique words: {stats['unique_word_count']}\n"
+        )
+
+        if stats["top_words_limit"] is not None:
+            top_words_header = "\nTop words:\n"
+
+            formatted_top_words = ""
+
+            for word_count in stats["top_words"]:
+                formatted_top_words += f"{word_count['count']}  {word_count['word']}\n"
+
+            if formatted_top_words == "":
+                formatted_top_words = "(none)\n"
+
+            formatted_text = formatted_text + top_words_header + formatted_top_words
+
+        return formatted_text
+    elif format == "json":
+        return json.dumps(stats, indent=2)
+    else:
+        raise ValueError(f"format must be 'text' or 'json', but received {format!r}")
