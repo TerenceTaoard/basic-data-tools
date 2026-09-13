@@ -1,5 +1,7 @@
+import argparse
 import json
 import re
+import sys
 from pathlib import Path
 
 
@@ -227,3 +229,88 @@ def read_text_file(path: Path) -> str:
     text = path.read_text(encoding="utf-8")
 
     return text
+
+
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Compute simple statistics for a text file"
+    )
+
+    parser.add_argument(
+        "--input", required=True, metavar="PATH", help="input file path"
+    )
+    parser.add_argument(
+        "--top-words", type=int, metavar="N", help="show the top N words"
+    )
+    parser.add_argument(
+        "--min-length",
+        type=int,
+        default=1,
+        metavar="N",
+        help="ignore tokens shorter than N characters",
+    )
+    parser.add_argument(
+        "--format",
+        choices=["text", "json"],
+        default="text",
+        metavar="TEXT|JSON",
+        help="output format",
+    )
+    parser.add_argument(
+        "--lowercase",
+        action="store_true",
+        help="convert all letters to lowercase if flag provided",
+    )
+
+    return parser.parse_args(argv)
+
+
+def main(argv=None):
+    args = parse_args(argv)
+
+    input_path = Path(args.input)
+
+    try:
+        text = read_text_file(input_path)
+    except FileNotFoundError:
+        print(f"error: input file not found: {args.input}", file=sys.stderr)
+        return 1
+    except IsADirectoryError:
+        print(f"error: input path is not a file: {args.input}", file=sys.stderr)
+        return 1
+    except PermissionError:
+        print(
+            f"error: don't have permission to open file: {args.input}", file=sys.stderr
+        )
+        return 1
+    except UnicodeDecodeError:
+        print(f"error: couldn't decode input as UTF-8: {args.input}", file=sys.stderr)
+        return 1
+    except OSError as e:
+        print(f"error: couldn't read {args.input}: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        text_stats = compute_text_stats(
+            text,
+            lowercase=args.lowercase,
+            min_length=args.min_length,
+            top_words_limit=args.top_words,
+        )
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        formatted_text_stats = format_text_stats(text_stats, format=args.format)
+    except ValueError as e:
+        print(f"error: {e}", file=sys.stderr)
+        return 1
+
+    print(formatted_text_stats)
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

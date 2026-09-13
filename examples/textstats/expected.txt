@@ -1,0 +1,8 @@
+Text statistics
+---------------
+Lines: 5
+Nonempty lines: 4
+Characters: 176
+Words: 27
+Unique words: 23
+

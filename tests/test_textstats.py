@@ -1,7 +1,6 @@
 import json
-import pytest
 
-from pathlib import Path
+import pytest
 
 from scripts.textstats import (
     compute_text_stats,

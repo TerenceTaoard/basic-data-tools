@@ -1,0 +1,20 @@
+Text statistics
+---------------
+Lines: 5
+Nonempty lines: 4
+Characters: 176
+Words: 27
+Unique words: 23
+
+Top words:
+3  Python
+2  and
+2  is
+1  E-mail
+1  If
+1  are
+1  can
+1  characters
+1  count
+1  different
+

@@ -1,0 +1,5 @@
+Python makes text processing easy.
+Python can count words, lines, and characters.
+
+E-mail and don't are tokens.
+If lowercase flag is provided, python is different from Python.
