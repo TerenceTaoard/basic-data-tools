@@ -259,7 +259,7 @@ def parse_args(argv=None):
     parser.add_argument(
         "--lowercase",
         action="store_true",
-        help="convert all letters to lowercase if flag provided",
+        help="convert all letters to lowercase",
     )
 
     return parser.parse_args(argv)

@@ -18,8 +18,32 @@ python -m pytest
 
 ## Tool Table
 
-No tools added yet.
+| Tool | What it does | Main input | Main output |
+|---|---|---|---|
+| textstats | counts words/lines/tokens | text file | text/JSON report |
 
 ## Quick Start
 
-TODO
+After setup, try running textstats on the provided example file:
+
+```bash
+python scripts/textstats.py --input examples/textstats/sample.txt
+```
+
+Convert to lowercase and show only the top 10 most frequent words:
+
+```bash
+python scripts/textstats.py --input examples/textstats/sample.txt --lowercase --top-words 10
+```
+
+Output results as JSON:
+
+```bash
+python scripts/textstats.py --input examples/textstats/sample.txt --format json
+```
+
+Show all available options:
+
+```bash
+python scripts/textstats.py --help
+```
