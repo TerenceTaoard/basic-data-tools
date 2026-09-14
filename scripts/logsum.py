@@ -145,3 +145,27 @@ def group_counts(records: list[dict], field: str) -> dict:
     grouped_records = {"missing_group_field": missing_group_field, "groups": groups}
 
     return grouped_records
+
+
+def sort_groups(counts: list[dict], limit: int | None = None) -> list[dict]:
+    """
+    Given a list of group counts of the form {"value": <value>, "count": <count>}, returns a sorted
+    list of the top 'limit' groups, or all groups if 'limit' is None. Groups are sorted first by
+    descending count, then by ascending lexicographic order.
+
+    Args:
+        counts: A list of group counts of the form {"value": <value>, "count": <count>}
+        limit: Return the top 'limit' groups. If limit is None, return all groups.
+
+    Preconditions:
+        - limit > 0
+    """
+    if limit is not None and limit < 1:
+        raise ValueError(f"limit must be > 0, but received limit of {limit}")
+
+    sorted_counts = sorted(counts, key=lambda x: (-x["count"], x["value"]))
+
+    if limit is None:
+        return sorted_counts
+
+    return sorted_counts[:limit]

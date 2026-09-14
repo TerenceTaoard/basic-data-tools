@@ -1,6 +1,12 @@
 import pytest
 
-from scripts.logsum import filter_records, group_counts, parse_log_file, parse_log_line
+from scripts.logsum import (
+    filter_records,
+    group_counts,
+    parse_log_file,
+    parse_log_line,
+    sort_groups,
+)
 
 
 def test_parse_log_line_parses_normal_line():
@@ -361,3 +367,57 @@ def test_group_counts_record_lacking_fields_key_raises():
         ValueError, match=f"record lacks a fields entry: {records[1]!r}"
     ):
         group_counts(records, field="user")
+
+
+def test_sort_groups_counts_sorted_descending():
+    group_counts = [
+        {"value": "one", "count": 1},
+        {"value": "two", "count": 2},
+        {"value": "three", "count": 3},
+    ]
+
+    sorted_group_counts = sort_groups(group_counts)
+
+    assert sorted_group_counts == [
+        {"value": "three", "count": 3},
+        {"value": "two", "count": 2},
+        {"value": "one", "count": 1},
+    ]
+
+
+def test_sort_groups_tiebreaks_on_value_ascending():
+    group_counts = [
+        {"value": "one", "count": 2},
+        {"value": "two", "count": 2},
+        {"value": "three", "count": 2},
+    ]
+
+    sorted_group_counts = sort_groups(group_counts)
+
+    assert sorted_group_counts == [
+        {"value": "one", "count": 2},
+        {"value": "three", "count": 2},
+        {"value": "two", "count": 2},
+    ]
+
+
+def test_sort_groups_limit_applied():
+    group_counts = [
+        {"value": "one", "count": 1},
+        {"value": "two", "count": 2},
+        {"value": "three", "count": 3},
+    ]
+
+    sorted_group_counts = sort_groups(group_counts, limit=2)
+
+    assert sorted_group_counts == [
+        {"value": "three", "count": 3},
+        {"value": "two", "count": 2},
+    ]
+
+
+def test_sort_groups_nonpositive_limit_raises():
+    group_counts = [{"value": "one", "count": 1}]
+
+    with pytest.raises(ValueError, match="limit must be > 0, but received limit of 0"):
+        sort_groups(group_counts, limit=0)
