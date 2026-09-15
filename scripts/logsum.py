@@ -169,3 +169,85 @@ def sort_groups(counts: list[dict], limit: int | None = None) -> list[dict]:
         return sorted_counts
 
     return sorted_counts[:limit]
+
+
+def build_summary(
+    log_text: str,
+    level_filter: str | None = None,
+    group_by: str | None = None,
+    group_limit: int | None = None,
+) -> dict:
+    """
+    Builds a summary of a log.
+
+    Args:
+        log_text: Text from a log file.
+        level_filter: Include only log entries with this level. If None, include entries of all levels.
+        group_by: Group values of fields with key 'group_by'. If None, don't group any.
+        group_limit: The maximum number of groups to include. If None, include all matching groups.
+
+    Preconditions:
+        - group_limit > 0
+
+    Returns:
+        A dictionary summary of a log.
+
+        Keys:
+            "total_lines" (int): The number of lines in log_text.
+            "parsed_records" (int): The number of successfully parsed lines.
+            "malformed_lines" (int): The number of lines that couldn't be parsed.
+            "matching_records" (int): The number of lines of level 'level_filter'.
+            "level_filter" (str | None): The chosen level filtered. If None, all levels were
+                included.
+            "group_by" (str | None): The key grouped on. If None, no groups formed.
+            "missing_group_field" (int): Number of matching records without the 'group_by' field.
+                If no 'group_by' provided, always 0.
+            "groups" (list[dict]): Matching groups with entries of form
+                {"value": <value>, "count": <count>}, sorted first by descending count, then by
+                ascending lexicographic order of value.
+    """
+    lines = log_text.splitlines()
+
+    parsed_lines = parse_log_file(
+        lines
+    )  # keys: total_line_count, parsed_record_count, malformed_line_count, parsed_records
+
+    total_line_count = parsed_lines["total_line_count"]
+    parsed_record_count = parsed_lines["parsed_record_count"]
+    malformed_line_count = parsed_lines["malformed_line_count"]
+
+    parsed_records = parsed_lines[
+        "parsed_records"
+    ]  # each element has keys: timestamp, level, fields
+
+    filtered_records = filter_records(parsed_records, level=level_filter)
+
+    matching_record_count = len(filtered_records)
+
+    if group_by is not None:
+        grouped_fields = group_counts(
+            filtered_records, field=group_by
+        )  # keys: missing_group_field, groups
+
+        missing_group_field = grouped_fields["missing_group_field"]
+
+        groups = grouped_fields[
+            "groups"
+        ]  # each element: {"value": <value>, "count": <count>}
+        groups = sort_groups(groups, limit=group_limit)
+    else:
+        missing_group_field = 0
+        groups = []
+
+    summary = {
+        "total_lines": total_line_count,
+        "parsed_records": parsed_record_count,
+        "malformed_lines": malformed_line_count,
+        "matching_records": matching_record_count,
+        "level_filter": level_filter,
+        "group_by": group_by,
+        "missing_group_field": missing_group_field,
+        "groups": groups,
+    }
+
+    return summary

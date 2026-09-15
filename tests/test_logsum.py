@@ -1,6 +1,7 @@
 import pytest
 
 from scripts.logsum import (
+    build_summary,
     filter_records,
     group_counts,
     parse_log_file,
@@ -421,3 +422,129 @@ def test_sort_groups_nonpositive_limit_raises():
 
     with pytest.raises(ValueError, match="limit must be > 0, but received limit of 0"):
         sort_groups(group_counts, limit=0)
+
+
+def test_build_summary_summarizes_empty_log():
+    log_text = ""
+
+    log_summary = build_summary(log_text)
+
+    assert log_summary == {
+        "total_lines": 0,
+        "parsed_records": 0,
+        "malformed_lines": 0,
+        "matching_records": 0,
+        "level_filter": None,
+        "group_by": None,
+        "missing_group_field": 0,
+        "groups": [],
+    }
+
+
+def test_build_summary_level_filter_counts_matching_records():
+    log_text = (
+        "2026-07-04T12:10:15Z INFO user=42 path=/home status=200 duration_ms=17\n"
+        "2026-07-04T12:10:16Z ERROR user=19 path=/api/pay status=500 duration_ms=243\n"
+        "2026-07-04T12:10:17Z ERROR user=31 path=/api/pay status=502 duration_ms=180\n"
+    )
+
+    log_summary = build_summary(log_text, level_filter="ERROR")
+
+    assert log_summary["matching_records"] == 2
+
+
+def test_build_summary_summarizes_normal_log():
+    log_text = (
+        "2026-07-04T12:10:15Z INFO user=42 path=/home status=200 duration_ms=17\n"
+        "2026-07-04T12:10:16Z ERROR user=19 path=/api/pay status=500 duration_ms=243\n"
+        "2026-07-04T12:10:17Z ERROR user=31 path=/api/pay status=502 duration_ms=180\n"
+        "2026-07-04T12:10:20Z ERROR user=19 broken-token\n"
+    )
+
+    log_summary = build_summary(log_text, level_filter="ERROR")
+
+    assert log_summary == {
+        "total_lines": 4,
+        "parsed_records": 3,
+        "malformed_lines": 1,
+        "matching_records": 2,
+        "level_filter": "ERROR",
+        "group_by": None,
+        "missing_group_field": 0,
+        "groups": [],
+    }
+
+
+def test_build_summary_groups_fields():
+    log_text = (
+        "2026-07-04T12:10:15Z INFO user=42 path=/home status=200 duration_ms=17\n"
+        "2026-07-04T12:10:16Z ERROR user=19 path=/api/pay status=500 duration_ms=243\n"
+        "2026-07-04T12:10:17Z ERROR user=31 path=/api/pay status=502 duration_ms=180\n"
+        "2026-07-04T12:10:18Z ERROR user=44 status=500 duration_ms=91\n"
+        "2026-07-04T12:10:15Z ERROR user=42 path=/home status=200 duration_ms=17\n"
+        "2026-07-04T12:10:20Z ERROR user=19 broken-token\n"
+    )
+
+    log_summary = build_summary(log_text, level_filter="ERROR", group_by="path")
+
+    assert log_summary["group_by"] == "path"
+    assert log_summary["missing_group_field"] == 1
+    assert log_summary["groups"] == [
+        {"value": "/api/pay", "count": 2},
+        {"value": "/home", "count": 1},
+    ]
+
+
+def test_build_summary_no_level_filter_counts_all_valid_records_as_matching():
+    log_text = (
+        "2026-07-04T12:10:15Z INFO user=42 path=/home status=200 duration_ms=17\n"
+        "2026-07-04T12:10:16Z ERROR user=19 path=/api/pay status=500 duration_ms=243\n"
+        "2026-07-04T12:10:17Z ERROR user=31 path=/api/pay status=502 duration_ms=180\n"
+        "2026-07-04T12:10:18Z ERROR user=44 status=500 duration_ms=91\n"
+        "2026-07-04T12:10:20Z ERROR user=19 broken-token\n"
+    )
+
+    log_summary = build_summary(log_text, level_filter=None)
+
+    assert log_summary["matching_records"] == 4
+
+
+def test_build_summary_summarizes_all_malformed_input():
+    log_text = (
+        "2026-07-04T12:10:20Z ERROR user=19 broken-token\n2026-07-04T12:10:15Z\n\n"
+    )
+
+    log_summary = build_summary(log_text, level_filter="ERROR")
+
+    assert log_summary == {
+        "total_lines": 3,
+        "parsed_records": 0,
+        "malformed_lines": 3,
+        "matching_records": 0,
+        "level_filter": "ERROR",
+        "group_by": None,
+        "missing_group_field": 0,
+        "groups": [],
+    }
+
+
+def test_build_summary_group_limit_applied():
+    log_text = (
+        "2026-07-04T12:10:16Z ERROR user=19 path=/api/pay status=500 duration_ms=243\n"
+        "2026-07-04T12:10:17Z ERROR user=31 path=/api/pay status=502 duration_ms=180\n"
+        "2026-07-04T12:10:18Z ERROR user=44 path=/home\n"
+        "2026-07-04T12:10:20Z ERROR user=19 path=/tmp\n"
+    )
+
+    log_summary = build_summary(log_text, group_by="path", group_limit=2)
+
+    assert len(log_summary["groups"]) == 2
+
+
+def test_build_summary_nonpositive_group_limit_raises():
+    log_text = (
+        "2026-07-04T12:10:16Z ERROR user=19 path=/api/pay status=500 duration_ms=243\n"
+    )
+
+    with pytest.raises(ValueError, match="limit must be > 0, but received limit of 0"):
+        build_summary(log_text, group_by="path", group_limit=0)
