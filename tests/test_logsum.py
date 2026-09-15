@@ -1,8 +1,11 @@
+import json
+
 import pytest
 
 from scripts.logsum import (
     build_summary,
     filter_records,
+    format_log_summary,
     group_counts,
     parse_log_file,
     parse_log_line,
@@ -548,3 +551,107 @@ def test_build_summary_nonpositive_group_limit_raises():
 
     with pytest.raises(ValueError, match="limit must be > 0, but received limit of 0"):
         build_summary(log_text, group_by="path", group_limit=0)
+
+
+def test_format_log_summary_formats_text():
+    log_summary = {
+        "total_lines": 3,
+        "parsed_records": 3,
+        "malformed_lines": 0,
+        "matching_records": 2,
+        "level_filter": None,
+        "group_by": None,
+        "missing_group_field": 0,
+        "groups": [],
+    }
+
+    formatted = format_log_summary(log_summary, format="text")
+
+    assert formatted == (
+        "Log summary\n"
+        "-----------\n"
+        "Total lines: 3\n"
+        "Parsed records: 3\n"
+        "Malformed lines: 0\n"
+        "Matching records: 2\n"
+    )
+
+
+def test_format_log_summary_formats_text_with_groups():
+    log_summary = {
+        "total_lines": 3,
+        "parsed_records": 3,
+        "malformed_lines": 0,
+        "matching_records": 2,
+        "level_filter": None,
+        "group_by": "path",
+        "missing_group_field": 0,
+        "groups": [{"value": "/api/pay", "count": 2}, {"value": "/home", "count": 1}],
+    }
+
+    formatted = format_log_summary(log_summary, format="text")
+
+    assert formatted == (
+        "Log summary\n"
+        "-----------\n"
+        "Total lines: 3\n"
+        "Parsed records: 3\n"
+        "Malformed lines: 0\n"
+        "Matching records: 2\n"
+        "Missing group field: 0\n"
+        "\n"
+        "Top groups by path:\n"
+        "2  /api/pay\n"
+        "1  /home\n"
+    )
+
+
+def test_format_log_summary_displays_explicit_none_when_no_matching_record_has_field():
+    log_summary = {
+        "total_lines": 3,
+        "parsed_records": 3,
+        "malformed_lines": 0,
+        "matching_records": 2,
+        "level_filter": None,
+        "group_by": "path",
+        "missing_group_field": 0,
+        "groups": [],
+    }
+
+    formatted = format_log_summary(log_summary, format="text")
+
+    assert formatted.endswith("Top groups by path:\n(none)\n")
+
+
+def test_format_log_summary_displays_explicit_empty_for_empty_value():
+    log_summary = {
+        "total_lines": 3,
+        "parsed_records": 3,
+        "malformed_lines": 0,
+        "matching_records": 2,
+        "level_filter": None,
+        "group_by": "path",
+        "missing_group_field": 0,
+        "groups": [{"value": "", "count": 1}],
+    }
+
+    formatted = format_log_summary(log_summary, format="text")
+
+    assert formatted.endswith("Top groups by path:\n1  <empty>\n")
+
+
+def test_format_log_summary_formats_json():
+    log_summary = {
+        "total_lines": 3,
+        "parsed_records": 3,
+        "malformed_lines": 0,
+        "matching_records": 2,
+        "level_filter": None,
+        "group_by": "path",
+        "missing_group_field": 0,
+        "groups": [{"value": "/api/pay", "count": 2}, {"value": "/home", "count": 1}],
+    }
+
+    formatted = format_log_summary(log_summary, format="json")
+
+    assert json.loads(formatted) == log_summary

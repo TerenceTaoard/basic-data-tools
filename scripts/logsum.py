@@ -1,3 +1,6 @@
+import json
+
+
 def parse_log_line(line: str) -> dict:
     """
     Returns a parsed dictionary record of line of the form:
@@ -251,3 +254,52 @@ def build_summary(
     }
 
     return summary
+
+
+def format_log_summary(summary: dict, format: str = "text") -> str:
+    """
+    Return a displayable representation of the contents of a log summary.
+
+    Preconditions:
+        - Format must be 'text' or 'json'.
+
+    Raises:
+        ValueError: If 'format' isn't 'text' or 'json'.
+    """
+    if format == "text":
+        formatted = (
+            f"Log summary\n"
+            f"-----------\n"
+            f"Total lines: {summary['total_lines']}\n"
+            f"Parsed records: {summary['parsed_records']}\n"
+            f"Malformed lines: {summary['malformed_lines']}\n"
+            f"Matching records: {summary['matching_records']}\n"
+        )
+
+        if summary["group_by"] is not None:
+            formatted_groups = ""
+
+            for group in summary["groups"]:
+                value = group["value"]
+                if value == "":
+                    value = "<empty>"
+                count = group["count"]
+                formatted_groups += f"{count}  {value}\n"
+
+            if formatted_groups == "":
+                formatted_groups = "(none)\n"
+
+            formatted = (
+                formatted
+                + f"Missing group field: {summary['missing_group_field']}\n\n"
+                + f"Top groups by {summary['group_by']}:\n"
+                + formatted_groups
+            )
+
+        return formatted
+
+    elif format == "json":
+        return json.dumps(summary, indent=2)
+
+    else:
+        raise ValueError(f"format must be 'text' or 'json', but received {format!r}")
